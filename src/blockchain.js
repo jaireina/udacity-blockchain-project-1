@@ -81,8 +81,16 @@ class Blockchain {
               : null),
           })
         ).toString();
+
+        const chainErrors = await self.validateChain();
+        if (chainErrors.length > 0) {
+          reject(chainErrors);
+          return;
+        }
+
         this.chain.push(block);
         self.height = block.height;
+
         resolve(block);
       } catch (e) {
         reject(e.message);
@@ -174,7 +182,7 @@ class Blockchain {
   getBlockByHeight(height) {
     let self = this;
     return new Promise((resolve, reject) => {
-      let block = self.chain.filter((p) => p.height === height)[0];
+      let block = self.chain.find((p) => p.height === height);
       if (block) {
         resolve(block);
       } else {
@@ -219,17 +227,15 @@ class Blockchain {
     let errorLog = [];
     return new Promise(async (resolve, reject) => {
       try {
-        errorLog = self.chain.filter(
-          async (block) => !(await block.validate())
-        );
         for (let i = 0; i < self.chain.length; i++) {
-          if (self.height === 0) continue;
-
           const block = self.chain[i];
+
+          if (block.height === 0) continue;
+
           if (!(await block.validate())) {
             errorLog.push({ message: "Invalid block", block });
           } else if (
-            block.previousBlockHash !== self.chain[i - 1].previousBlockHash
+            block.previousBlockHash !== self.chain[i].previousBlockHash
           ) {
             errorLog.push({ message: "Invalid previous hash", block });
           }
